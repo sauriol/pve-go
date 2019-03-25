@@ -73,13 +73,12 @@ func (proxmox Proxmox) EditAccessDomain (domain string,
 }
 
 // Untested
-func (proxmox Proxmox) DeleteAccessDomain(domain string) (map[string] interface{}, error) {
-    data, err := proxmox.Delete("/access/domains/" + domain)
+func (proxmox Proxmox) DeleteAccessDomain(domain string) error {
+    _, err := proxmox.Delete("/access/domains/" + domain)
     if err != nil {
-        return nil, err
+        return err
     }
-    dataMap := data.(map[string]interface{})
-    return dataMap, nil
+    return nil
 }
 
 func (proxmox Proxmox) GetAccessGroups() ([]*Group, error) {
@@ -140,11 +139,10 @@ func (proxmox Proxmox) EditAccessGroup (name string, form url.Values) (map[strin
 }
 
 // Untested
-func (proxmox Proxmox) DeleteAccessGroup(name string) (map[string] interface{}, error) {
-    data, err := proxmox.Delete("/access/domains/" + name)
+func (proxmox Proxmox) DeleteAccessGroup(name string) error {
+    _, err := proxmox.Delete("/access/domains/" + name)
     if err != nil {
-        return nil, err
+        return err
     }
-    dataMap := data.(map[string]interface{})
-    return dataMap, nil
+    return nil
 }
