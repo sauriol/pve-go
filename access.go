@@ -42,6 +42,14 @@ func (proxmox Proxmox) Access() ([]string, error) {
     return subdirs, nil
 }
 
+// Returns the authentication domain index. Literally just returns a list of
+// Domain structs for each domain.
+// NOTE: although no permissions are required to get the list of domains,
+// either Realm.Allocate or Sys.Audit perms are required to get the details of
+// a specific domain so the authenticated user must have one of those perms.
+// TODO:
+//  - Fix that permissions issue?
+//    - Maybe just return a list of realm names?
 func (proxmox Proxmox) GetAccessDomains() ([]*Domain, error) {
     var domains []*Domain
     data, err := proxmox.Get("/access/domains")
@@ -61,18 +69,13 @@ func (proxmox Proxmox) GetAccessDomains() ([]*Domain, error) {
     return domains, nil
 }
 
-// Untested
 // TODO:
 //  - Pass in options as Domain struct instead of form
-func (proxmox Proxmox) AddAccessDomain(form url.Values) (map[string] interface{}, error) {
-    data, err := proxmox.PostForm("/access/domains", form)
-    if err != nil {
-        return nil, err
-    }
-    dataMap := data.(map[string]interface{})
-    return dataMap, err
+func (proxmox Proxmox) AddAccessDomain(domain Domain) error {
+    return nil
 }
 
+// Gets the auth server configuration for the relevant domain
 func (proxmox Proxmox) GetAccessDomain(name string) (*Domain, error) {
     var domain Domain
     data, err := proxmox.Get("/access/domains/" + name)
@@ -88,7 +91,6 @@ func (proxmox Proxmox) GetAccessDomain(name string) (*Domain, error) {
     return &domain, nil
 }
 
-// Untested
 // TODO:
 //  - Pass in Domain struct instead of form
 func (proxmox Proxmox) EditAccessDomain (domain string,
@@ -110,6 +112,9 @@ func (proxmox Proxmox) DeleteAccessDomain(domain string) error {
     return nil
 }
 
+// Returns the group index (effectively a list of Group structs)
+// NOTE: The available groups are restricted to groups where the authenticated
+// user has User.Modify, Sys.Audit, or Group.Allocate permissions.
 func (proxmox Proxmox) GetAccessGroups() ([]*Group, error) {
     data, err := proxmox.Get("/access/groups")
     if err != nil {
@@ -129,16 +134,13 @@ func (proxmox Proxmox) GetAccessGroups() ([]*Group, error) {
     return groups, nil
 }
 
-// Untested
-func (proxmox Proxmox) AddAccessGroup(form url.Values) (map[string] interface{}, error) {
-    data, err := proxmox.PostForm("/access/groups", form)
-    if err != nil {
-        return nil, err
-    }
-    dataMap := data.(map[string]interface{})
-    return dataMap, err
+// TODO
+//  - Implement using Group struct instead of form
+func (proxmox Proxmox) AddAccessGroup(group Group) error {
+    return nil
 }
 
+// Returns an individual group configuration
 func (proxmox Proxmox) GetAccessGroup(name string) (*Group, error) {
     var group Group
 
@@ -157,19 +159,15 @@ func (proxmox Proxmox) GetAccessGroup(name string) (*Group, error) {
     return &group, nil
 }
 
-// Untested
-func (proxmox Proxmox) EditAccessGroup (name string, form url.Values) (map[string] interface{}, error) {
-    data, err := proxmox.PostForm("/access/groups/" + name, form)
-    if err != nil {
-        return nil, err
-    }
-    dataMap := data.(map[string]interface{})
-    return dataMap, nil
+// TODO:
+//  - Implementing passing Group struct
+func (proxmox Proxmox) EditAccessGroup (group Group) error {
+    return nil
 }
 
 // Untested
-func (proxmox Proxmox) DeleteAccessGroup(name string) error {
-    _, err := proxmox.Delete("/access/domains/" + name)
+func (proxmox Proxmox) DeleteAccessGroup(group string) error {
+    _, err := proxmox.Delete("/access/domains/" + group)
     if err != nil {
         return err
     }
