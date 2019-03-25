@@ -24,25 +24,46 @@ type Domain struct {
     Type    string
 }
 
-func (proxmox Proxmox) Access() ([]interface{}, error) {
+// Returns the valid subdirectories for `/access`. For example, because `roles`
+// is returned, `/access/roles` is a valid API path
+func (proxmox Proxmox) Access() ([]string, error) {
     data, err := proxmox.Get("/access")
     if err != nil {
         return nil, err
     }
+
+    var subdirs []string
     dataArr := data.([]interface{})
-    return dataArr, nil
+    for _, element := range dataArr {
+        elementMap := element.(map[string] interface{})
+        subdirs = append(subdirs, elementMap["subdir"].(string))
+    }
+
+    return subdirs, nil
 }
 
-func (proxmox Proxmox) GetAccessDomains() ([]interface{}, error) {
+func (proxmox Proxmox) GetAccessDomains() ([]*Domain, error) {
+    var domains []*Domain
     data, err := proxmox.Get("/access/domains")
     if err != nil {
         return nil, err
     }
     dataArr := data.([]interface{})
-    return dataArr, nil
+
+    for _, element := range dataArr {
+        elementMap := element.(map[string] interface{})
+        domain, err := proxmox.GetAccessDomain(elementMap["realm"].(string))
+        if err != nil {
+            return nil, err
+        }
+        domains = append(domains, domain)
+    }
+    return domains, nil
 }
 
 // Untested
+// TODO:
+//  - Pass in options as Domain struct instead of form
 func (proxmox Proxmox) AddAccessDomain(form url.Values) (map[string] interface{}, error) {
     data, err := proxmox.PostForm("/access/domains", form)
     if err != nil {
@@ -52,16 +73,24 @@ func (proxmox Proxmox) AddAccessDomain(form url.Values) (map[string] interface{}
     return dataMap, err
 }
 
-func (proxmox Proxmox) GetAccessDomain(domain string) (map[string] interface{}, error) {
-    data, err := proxmox.Get("/access/domains/" + domain)
+func (proxmox Proxmox) GetAccessDomain(name string) (*Domain, error) {
+    var domain Domain
+    data, err := proxmox.Get("/access/domains/" + name)
     if err != nil {
         return nil, err
     }
-    dataMap := data.(map[string]interface{})
-    return dataMap, nil
+    data = data.(map[string]interface{})
+
+    err = mapstructure.Decode(data, &domain)
+    if err != nil {
+        return nil, err
+    }
+    return &domain, nil
 }
 
 // Untested
+// TODO:
+//  - Pass in Domain struct instead of form
 func (proxmox Proxmox) EditAccessDomain (domain string,
     form url.Values) (map[string] interface{}, error) {
     data, err := proxmox.PostForm("/access/domains/" + domain, form)
