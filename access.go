@@ -24,6 +24,11 @@ type Domain struct {
     Type    string
 }
 
+type Role struct {
+    RoleID  string
+    Privs   string
+}
+
 // Returns the valid subdirectories for `/access`. For example, because `roles`
 // is returned, `/access/roles` is a valid API path
 func (proxmox Proxmox) Access() ([]string, error) {
@@ -168,6 +173,56 @@ func (proxmox Proxmox) EditAccessGroup (group Group) error {
 // Untested
 func (proxmox Proxmox) DeleteAccessGroup(group string) error {
     _, err := proxmox.Delete("/access/domains/" + group)
+    if err != nil {
+        return err
+    }
+    return nil
+}
+
+func (proxmox Proxmox) GetRoles() ([]*Role, error) {
+    var roles []*Role
+    data, err := proxmox.Get("/access/roles")
+    if err != nil {
+        return nil, err
+    }
+    dataArr := data.([]interface{})
+
+    for _, element := range dataArr {
+        elementMap := element.(map[string] interface{})
+        role, err := proxmox.GetRole(elementMap["roleid"].(string))
+        if err != nil {
+            return nil, err
+        }
+        roles = append(roles, role)
+    }
+    return nil, nil
+}
+
+func (proxmox Proxmox) AddRole(role Role) error {
+    return nil
+}
+
+func (proxmox Proxmox) GetRole(roleid string) (*Role, error) {
+    var role Role
+    data, err := proxmox.Get("/access/roles/" + roleid)
+    if err != nil {
+        return nil, err
+    }
+    data = data.(map[string] interface{})
+
+    err = mapstructure.Decode(data, &role)
+    if err != nil {
+        return nil, err
+    }
+    return &role, nil
+}
+
+func (proxmox Proxmox) EditRole(role Role) error {
+    return nil
+}
+
+func (proxmox Proxmox) DeleteRole(roleid string) error {
+    _, err := proxmox.Delete("/access/roles/" + roleid)
     if err != nil {
         return err
     }
