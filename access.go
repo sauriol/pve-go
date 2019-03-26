@@ -9,6 +9,7 @@ package main
 import (
     "net/url"
     "github.com/mitchellh/mapstructure"
+    "fmt"
 )
 
 type Group struct {
@@ -27,6 +28,18 @@ type Domain struct {
 type Role struct {
     RoleID  string
     Privs   string
+    Special bool
+}
+
+type User struct {
+    UserID      string
+    Comment     string
+    EMail       string
+    Enable      bool
+    Expire      bool
+    FirstName   string
+    LastName    string
+    KeyIDs      string
 }
 
 // Returns the valid subdirectories for `/access`. For example, because `roles`
@@ -189,6 +202,7 @@ func (proxmox Proxmox) GetRoles() ([]*Role, error) {
 
     for _, element := range dataArr {
         elementMap := element.(map[string] interface{})
+        fmt.Println(elementMap)
         role, err := proxmox.GetRole(elementMap["roleid"].(string))
         if err != nil {
             return nil, err
@@ -223,6 +237,57 @@ func (proxmox Proxmox) EditRole(role Role) error {
 
 func (proxmox Proxmox) DeleteRole(roleid string) error {
     _, err := proxmox.Delete("/access/roles/" + roleid)
+    if err != nil {
+        return err
+    }
+    return nil
+}
+
+func (proxmox Proxmox) GetUsers(userid string) ([]*User, error) {
+    var users []*User
+    data, err := proxmox.Get("/access/users")
+    if err != nil {
+        return nil, err
+    }
+    dataArr := data.([]interface{})
+
+    for _, element := range dataArr {
+        elementMap := element.(map[string] interface{})
+        user, err := proxmox.GetUser(elementMap["userid"].(string))
+        if err != nil {
+            return nil, err
+        }
+        users = append(users, user)
+    }
+
+    return users, nil
+}
+
+func (proxmox Proxmox) AddUser(user User) error {
+    return nil
+}
+
+func (proxmox Proxmox) GetUser(userid string) (*User, error) {
+    var user User
+    data, err := proxmox.Get("/access/users/" + userid)
+    if err != nil {
+        return nil, err
+    }
+    data = data.(map[string] interface{})
+
+    err = mapstructure.Decode(data, &user)
+    if err != nil {
+        return nil, err
+    }
+    return &user, nil
+}
+
+func (proxmox Proxmox) EditUser(user User) error {
+    return nil
+}
+
+func (proxmox Proxmox) DeleteUser(userid string) error {
+    _, err := proxmox.Delete("/access/users/" + userid)
     if err != nil {
         return err
     }
