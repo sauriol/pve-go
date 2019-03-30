@@ -34,8 +34,8 @@ type User struct {
     UserID      string
     Comment     string
     EMail       string
-    Enable      bool
-    Expire      bool
+    Enable      float64
+    Expire      float64
     FirstName   string
     LastName    string
     KeyIDs      string
@@ -242,7 +242,7 @@ func (proxmox Proxmox) DeleteRole(roleid string) error {
     return nil
 }
 
-func (proxmox Proxmox) GetUsers(userid string) ([]*User, error) {
+func (proxmox Proxmox) GetUsers() ([]*User, error) {
     var users []*User
     data, err := proxmox.Get("/access/users")
     if err != nil {
