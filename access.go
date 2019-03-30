@@ -9,7 +9,7 @@ package main
 import (
     "net/url"
     "github.com/mitchellh/mapstructure"
-    "fmt"
+//    "fmt"
 )
 
 type Group struct {
@@ -27,8 +27,7 @@ type Domain struct {
 
 type Role struct {
     RoleID  string
-    Privs   string
-    Special bool
+    Privs   []string
 }
 
 type User struct {
@@ -68,7 +67,7 @@ func (proxmox Proxmox) Access() ([]string, error) {
 // TODO:
 //  - Fix that permissions issue?
 //    - Maybe just return a list of realm names?
-func (proxmox Proxmox) GetAccessDomains() ([]*Domain, error) {
+func (proxmox Proxmox) GetDomains() ([]*Domain, error) {
     var domains []*Domain
     data, err := proxmox.Get("/access/domains")
     if err != nil {
@@ -78,7 +77,7 @@ func (proxmox Proxmox) GetAccessDomains() ([]*Domain, error) {
 
     for _, element := range dataArr {
         elementMap := element.(map[string] interface{})
-        domain, err := proxmox.GetAccessDomain(elementMap["realm"].(string))
+        domain, err := proxmox.GetDomain(elementMap["realm"].(string))
         if err != nil {
             return nil, err
         }
@@ -89,12 +88,12 @@ func (proxmox Proxmox) GetAccessDomains() ([]*Domain, error) {
 
 // TODO:
 //  - Pass in options as Domain struct instead of form
-func (proxmox Proxmox) AddAccessDomain(domain Domain) error {
+func (proxmox Proxmox) AddDomain(domain Domain) error {
     return nil
 }
 
 // Gets the auth server configuration for the relevant domain
-func (proxmox Proxmox) GetAccessDomain(name string) (*Domain, error) {
+func (proxmox Proxmox) GetDomain(name string) (*Domain, error) {
     var domain Domain
     data, err := proxmox.Get("/access/domains/" + name)
     if err != nil {
@@ -111,7 +110,7 @@ func (proxmox Proxmox) GetAccessDomain(name string) (*Domain, error) {
 
 // TODO:
 //  - Pass in Domain struct instead of form
-func (proxmox Proxmox) EditAccessDomain (domain string,
+func (proxmox Proxmox) EditDomain (domain string,
     form url.Values) (map[string] interface{}, error) {
     data, err := proxmox.PostForm("/access/domains/" + domain, form)
     if err != nil {
@@ -122,7 +121,7 @@ func (proxmox Proxmox) EditAccessDomain (domain string,
 }
 
 // Untested
-func (proxmox Proxmox) DeleteAccessDomain(domain string) error {
+func (proxmox Proxmox) DeleteDomain(domain string) error {
     _, err := proxmox.Delete("/access/domains/" + domain)
     if err != nil {
         return err
@@ -133,7 +132,7 @@ func (proxmox Proxmox) DeleteAccessDomain(domain string) error {
 // Returns the group index (effectively a list of Group structs)
 // NOTE: The available groups are restricted to groups where the authenticated
 // user has User.Modify, Sys.Audit, or Group.Allocate permissions.
-func (proxmox Proxmox) GetAccessGroups() ([]*Group, error) {
+func (proxmox Proxmox) GetGroups() ([]*Group, error) {
     data, err := proxmox.Get("/access/groups")
     if err != nil {
         return nil, err
@@ -143,7 +142,7 @@ func (proxmox Proxmox) GetAccessGroups() ([]*Group, error) {
     var groups []*Group
     for _, element := range dataMap {
         elementMap := element.(map[string] interface{})
-        group, err := proxmox.GetAccessGroup(elementMap["groupid"].(string))
+        group, err := proxmox.GetGroup(elementMap["groupid"].(string))
         if err != nil {
             return nil, err
         }
@@ -154,12 +153,12 @@ func (proxmox Proxmox) GetAccessGroups() ([]*Group, error) {
 
 // TODO
 //  - Implement using Group struct instead of form
-func (proxmox Proxmox) AddAccessGroup(group Group) error {
+func (proxmox Proxmox) AddGroup(group Group) error {
     return nil
 }
 
 // Returns an individual group configuration
-func (proxmox Proxmox) GetAccessGroup(name string) (*Group, error) {
+func (proxmox Proxmox) GetGroup(name string) (*Group, error) {
     var group Group
 
     data, err := proxmox.Get("/access/groups/" + name)
@@ -179,12 +178,12 @@ func (proxmox Proxmox) GetAccessGroup(name string) (*Group, error) {
 
 // TODO:
 //  - Implementing passing Group struct
-func (proxmox Proxmox) EditAccessGroup (group Group) error {
+func (proxmox Proxmox) EditGroup (group Group) error {
     return nil
 }
 
 // Untested
-func (proxmox Proxmox) DeleteAccessGroup(group string) error {
+func (proxmox Proxmox) DeleteGroup(group string) error {
     _, err := proxmox.Delete("/access/domains/" + group)
     if err != nil {
         return err
@@ -202,14 +201,13 @@ func (proxmox Proxmox) GetRoles() ([]*Role, error) {
 
     for _, element := range dataArr {
         elementMap := element.(map[string] interface{})
-        fmt.Println(elementMap)
         role, err := proxmox.GetRole(elementMap["roleid"].(string))
         if err != nil {
             return nil, err
         }
         roles = append(roles, role)
     }
-    return nil, nil
+    return roles, nil
 }
 
 func (proxmox Proxmox) AddRole(role Role) error {
@@ -222,12 +220,13 @@ func (proxmox Proxmox) GetRole(roleid string) (*Role, error) {
     if err != nil {
         return nil, err
     }
-    data = data.(map[string] interface{})
+    dataMap := data.(map[string] interface{})
 
-    err = mapstructure.Decode(data, &role)
-    if err != nil {
-        return nil, err
+    role.RoleID = roleid
+    for key := range dataMap {
+        role.Privs = append(role.Privs, key)
     }
+
     return &role, nil
 }
 
